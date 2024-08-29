@@ -1,0 +1,28 @@
+{
+    "name": "create-nextjs-flex",
+    "version": "0.1.1",
+    "description": "CLI to create a flexible Next.js boilerplate",
+    "main": "index.js",
+    "bin": {
+        "create-nextjs-flex": "./cli.js"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "nextjs",
+        "boilerplate",
+        "cli",
+        "ai",
+        "react-query",
+        "apollo-client",
+        "graphql",
+        "zustand",
+        "tailwindCSS"
+    ],
+    "author": "Bafutwabo Regis",
+    "license": "MIT",
+    "dependencies": {
+        "commander": "^8.3.0"
+    }
+}

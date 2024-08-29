@@ -18,7 +18,7 @@ async function askQuestion(question) {
 }
 
 async function setup() {
-  console.log('Welcome to the Next.js Boilerplate Setup!');
+  console.log('Welcome to the Nextjs-flex Boilerplate Setup!');
 
   const projectName = await askQuestion('Enter your project name: ');
   const setupType = await askQuestion('Do you want a basic setup or an example project? (basic/example): ');
@@ -426,4 +426,4 @@ export default function AIExample() {
   fs.writeFileSync(path.join('src', 'components', 'AIExample.tsx'), content);
 }
 
-setup().catch(console.error);
+module.exports = { setup };
