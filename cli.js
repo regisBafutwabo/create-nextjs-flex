@@ -9,9 +9,10 @@ program
   .version(version, '-v, --version', 'Output the current version')
   .argument('[project-name]', 'Name of the project')
   .option('-y, --yes', 'Skip prompts and use default options')
+
   .action(async (projectName, options) => {
     try {
-      await setup(projectName, options.yes);
+      await setup(projectName, options);
       console.log(`Project ${projectName} created successfully!`);
     } catch (error) {
       console.error('An error occurred:', error);
