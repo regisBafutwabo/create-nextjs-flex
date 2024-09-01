@@ -20,27 +20,15 @@ create-nextjs-flex <project-name> [options]
 
 ### Options:
 
-- `-e, --example`: Create an example project with additional features
-
-If you use the `-e` or `--example` flag, you'll be prompted to choose from the following options:
-
-- React Query integration
-- Apollo Client integration
-- Zustand for state management
-- AI integration (OpenAI, Claude, or Vercel's v0)
+- `-y, --yes`: Skip prompts and use default options
+- `-v, --version`: Output the current version
 
 ### Examples:
 
-1. Create a basic Next.js project:
+Create a basic Next.js project:
    ```bash
    create-nextjs-flex my-app
    ```
-
-2. Create an example project with additional features:
-   ```bash
-   create-nextjs-flex my-advanced-app --example
-   ```
-   You'll then be prompted to choose which additional features you want to include.
 
 ## Features
 
@@ -48,7 +36,7 @@ If you use the `-e` or `--example` flag, you'll be prompted to choose from the f
 - TypeScript
 - Tailwind CSS
 - ESLint
-- Optional integrations (when using the `--example` flag):
+- Optional integrations:
   - React Query
   - Apollo Client
   - Zustand
@@ -76,7 +64,7 @@ my-project/
 └── tsconfig.json
 ```
 
-Additional files and directories will be created based on the options you choose when using the `--example` flag.
+Additional files and directories will be created based on the options you choose.
 
 ## Contributing
 
