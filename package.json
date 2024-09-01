@@ -1,6 +1,6 @@
 {
     "name": "create-nextjs-flex",
-    "version": "0.1.1",
+    "version": "0.1.22",
     "description": "CLI to create a flexible Next.js boilerplate",
     "main": "index.js",
     "bin": {
@@ -18,7 +18,11 @@
         "apollo-client",
         "graphql",
         "zustand",
-        "tailwindCSS"
+        "tailwindCSS",
+        "class-based-service",
+        "openai",
+        "claude",
+        "v0"
     ],
     "author": "Bafutwabo Regis",
     "license": "MIT",

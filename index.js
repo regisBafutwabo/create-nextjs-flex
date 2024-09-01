@@ -1,4 +1,4 @@
-// create-nextjs-boilerplate.js
+#!/usr/bin/env node
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -17,95 +17,126 @@ async function askQuestion(question) {
   });
 }
 
-async function setup() {
+async function setup(name, options = {}) {
   console.log('Welcome to the Nextjs-flex Boilerplate Setup!');
 
-  const projectName = await askQuestion('Enter your project name: ');
-  const setupType = await askQuestion('Do you want a basic setup or an example project? (basic/example): ');
+  const projectName = name || await askQuestion('Enter your project name: ');
   
-  let useReactQuery = 'n', useApollo = 'n', useZustand = 'n', aiChoice = 'none';
+  const config = await getConfiguration(options);
   
-  if (setupType === 'example') {
-    useReactQuery = await askQuestion('Do you want to use React Query? (y/n): ');
-    useApollo = useReactQuery === 'n' ? await askQuestion('Do you want to use Apollo Client? (y/n): ') : 'n';
-    useZustand = useApollo === 'n' ? await askQuestion('Do you want to use Zustand for state management? (y/n): ') : 'n';
-    aiChoice = await askQuestion('Which AI API do you want to use? (openai/claude/v0/none): ');
-  }
-
   console.log('\nSetting up your project...');
 
-  // Create project directory
-  fs.mkdirSync(projectName);
-  process.chdir(projectName);
-
-  // Create Next.js project
-  execSync('npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm', { stdio: 'inherit' });
-
-  // Ensure necessary directories exist
-  ['src/lib', 'src/utils', 'src/store', 'src/components'].forEach(dir => {
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  });
-
-  if (setupType === 'example') {
-    // Install additional dependencies
-    const dependencies = [];
-    if (useReactQuery === 'y') {
-      dependencies.push('@tanstack/react-query', '@tanstack/react-query-devtools');
-    }
-    if (useApollo === 'y') {
-      dependencies.push('@apollo/client', 'graphql');
-    }
-    if (useZustand === 'y') {
-      dependencies.push('zustand');
-    }
-    switch(aiChoice) {
-      case 'openai':
-        dependencies.push('openai');
-        break;
-      case 'claude':
-        dependencies.push('@anthropic-ai/sdk');
-        break;
-      case 'v0':
-        dependencies.push('ai');
-        break;
-    }
-
-    if (dependencies.length > 0) {
-      execSync(`npm install ${dependencies.join(' ')}`, { stdio: 'inherit' });
-    }
-
-    // Create necessary files based on selections
-    if (useReactQuery === 'y') {
-      createReactQueryProvider();
-      createReactQueryExample();
-    }
-    if (useApollo === 'y') {
-      createApolloClientFile();
-      createApolloExample();
-    }
-    if (useZustand === 'y') {
-      createZustandStore();
-      createZustandExample();
-    }
-    if (aiChoice !== 'none') {
-      createAIService(aiChoice);
-      createAIExample(aiChoice);
-    }
-  }
+  createProjectStructure(projectName, config);
+  installDependencies(config);
+  createNecessaryFiles(config);
 
   console.log('\nSetup complete! You can now start your development server with:');
-  console.log(`cd ${projectName} && npm run dev`);
+  console.log(`cd ${projectName} && yarn dev`);
 
   rl.close();
 }
 
+async function getConfiguration(options) {
+  if (options.yes) {
+    return {
+      useReactQuery: true,
+      useApollo: true,
+      useZustand: true,
+      aiChoice: 'openai',
+      useClass: false
+    };
+  }
+
+  const useReactQuery = await askQuestion('Do you want to use React Query? (y/n): ') === 'y';
+  const useApollo = !useReactQuery && (await askQuestion('Do you want to use Apollo Client? (y/n): ') === 'y');
+  const useZustand = !useApollo && (await askQuestion('Do you want to use Zustand for state management? (y/n): ') === 'y');
+  const aiChoice = await askQuestion('Which AI API do you want to use? (openai/claude/v0/none): ');
+  const useClass = await askQuestion('Do you want to use a class-based service? (y/n): ') === 'y';
+
+  return { useReactQuery, useApollo, useZustand, aiChoice, useClass };
+}
+
+function createProjectStructure(projectName, config) {
+  fs.mkdirSync(projectName);
+  process.chdir(projectName);
+
+  execSync('npx create-next-app . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-yarn', { stdio: 'inherit' });
+
+  const directories = [
+    config.useApollo ? 'src/lib' : '',
+    config.useClass ? 'src/services/Ai' : 'src/utils',
+    config.useZustand ? 'src/store' : '',
+    'src/components'
+  ].filter(Boolean);
+
+  directories.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  });
+}
+
+function installDependencies(config) {
+  const dependencies = [];
+  if (config.useReactQuery) {
+    dependencies.push('@tanstack/react-query', '@tanstack/react-query-devtools');
+  }
+  if (config.useApollo) {
+    dependencies.push('@apollo/client', 'graphql');
+  }
+  if (config.useZustand) {
+    dependencies.push('zustand');
+  }
+  if (config.aiChoice === 'openai') {
+    dependencies.push('openai');
+  } else if (config.aiChoice === 'claude') {
+    dependencies.push('@anthropic-ai/sdk');
+  } else if (config.aiChoice === 'v0') {
+    dependencies.push('ai');
+    dependencies.push('@ai-sdk/openai');
+  }
+
+  if (dependencies.length > 0) {
+    execSync(`yarn add ${dependencies.join(' ')}`, { stdio: 'inherit' });
+  }
+}
+
+function createNecessaryFiles(config) {
+  if (config.useReactQuery) {
+    createReactQueryProvider();
+    updateLayoutFile();
+  }
+  if (config.useApollo) {
+    createApolloClientFile();
+  }
+  if (config.useZustand) {
+    createZustandStore();
+  }
+  if (config.aiChoice !== 'none') {
+    createAIService(config.aiChoice, config.useClass);
+  }
+}
+
+function updateLayoutFile() {
+  const layoutPath = path.join('src', 'app', 'layout.tsx');
+  let content = fs.readFileSync(layoutPath, 'utf8');
+  content = content.replace(
+    "export default function RootLayout({",
+    "import Providers from './providers'\n\nexport default function RootLayout({"
+  );
+  content = content.replace(
+    "{children}",
+    "<Providers>{children}</Providers>"
+  );
+  fs.writeFileSync(layoutPath, content);
+}
+
 function createReactQueryProvider() {
   const content = `
+import React, { useState } from 'react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { useState } from 'react';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -122,43 +153,12 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   fs.writeFileSync(path.join('src', 'app', 'providers.tsx'), content);
 }
 
-function createReactQueryExample() {
-  const content = `
-import { useQuery } from '@tanstack/react-query';
-
-async function fetchTodos() {
-  const res = await fetch('https://jsonplaceholder.typicode.com/todos');
-  return res.json();
-}
-
-export default function Todos() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['todos'],
-    queryFn: fetchTodos,
-  });
-
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>An error occurred: {error.message}</div>;
-
-  return (
-    <ul>
-      {data.slice(0, 5).map((todo: { id: number; title: string }) => (
-        <li key={todo.id}>{todo.title}</li>
-      ))}
-    </ul>
-  );
-}
-  `.trim();
-
-  fs.writeFileSync(path.join('src', 'components', 'Todos.tsx'), content);
-}
-
 function createApolloClientFile() {
   const content = `
 import { ApolloClient, InMemoryCache } from '@apollo/client';
 
 const client = new ApolloClient({
-  uri: 'https://api.spacex.land/graphql/',
+  uri: process.env.NEXT_PUBLIC_GRAPHQL_API_URL,
   cache: new InMemoryCache(),
 });
 
@@ -166,41 +166,13 @@ export default client;
   `.trim();
 
   fs.writeFileSync(path.join('src', 'lib', 'apollo-client.ts'), content);
-}
 
-function createApolloExample() {
-  const content = `
-import { gql, useQuery } from '@apollo/client';
-
-const GET_LAUNCHES = gql\`
-  query GetLaunches {
-    launchesPast(limit: 5) {
-      mission_name
-      launch_date_local
-      launch_site {
-        site_name_long
-      }
-    }
-  }
-\`;
-
-export default function Launches() {
-  const { loading, error, data } = useQuery(GET_LAUNCHES);
-
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error :(</p>;
-
-  return data.launchesPast.map(({ mission_name, launch_date_local, launch_site }: any) => (
-    <div key={mission_name}>
-      <p>{mission_name}</p>
-      <p>{launch_date_local}</p>
-      <p>{launch_site.site_name_long}</p>
-    </div>
-  ));
-}
+  // Create .env.local file
+  const envContent = `
+NEXT_PUBLIC_GRAPHQL_API_URL=https://api.spacex.land/graphql/
   `.trim();
 
-  fs.writeFileSync(path.join('src', 'components', 'Launches.tsx'), content);
+  fs.writeFileSync('.env.local', envContent);
 }
 
 function createZustandStore() {
@@ -221,37 +193,28 @@ export const useAppStore = create<AppState>((set) => ({
   fs.writeFileSync(path.join('src', 'store', 'appStore.ts'), content);
 }
 
-function createZustandExample() {
-  const content = `
-import { useAppStore } from '../store/appStore';
-
-export default function Counter() {
-  const { count, increment } = useAppStore();
-
-  return (
-    <div>
-      <p>Count: {count}</p>
-      <button onClick={increment}>Increment</button>
-    </div>
-  );
-}
-  `.trim();
-
-  fs.writeFileSync(path.join('src', 'components', 'Counter.tsx'), content);
+function createAIService(aiChoice, useClass) {
+  const content = getAIServiceContent(aiChoice, useClass);
+  const filePath = useClass ? path.join('src', 'services', 'Ai', 'ai.ts') : path.join('src', 'utils', 'ai.ts');
+  fs.writeFileSync(filePath, content);
 }
 
-async function createAIService(aiChoice) {
-    const useClass = await askQuestion('Do you want to use a class-based service? (y/n): ') === 'y';
-
-  let content = '';
+function getAIServiceContent(aiChoice, useClass) {
   if (useClass) {
-    switch(aiChoice) {
-      case 'openai':
-        content = `
+    return getClassBasedAIService(aiChoice);
+  } else {
+    return getFunctionBasedAIService(aiChoice);
+  }
+}
+
+function getClassBasedAIService(aiChoice) {
+  switch(aiChoice) {
+    case 'openai':
+      return `
 import OpenAI from 'openai';
 
 export class AIService {
-  private openai: OpenAI;
+  private readonly openai: OpenAI;
 
   constructor() {
     this.openai = new OpenAI({
@@ -260,18 +223,37 @@ export class AIService {
   }
 
   async generateText(prompt: string): Promise<string> {
-    const chatCompletion = await this.openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-    });
+    try {
+      const chatCompletion = await this.openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+      });
 
-    return chatCompletion.choices[0].message.content || '';
+      return chatCompletion.choices[0].message.content || '';
+    } catch (error) {
+      console.error('Error generating text:', error);
+      throw new Error('Failed to generate text');
+    }
+  }
+
+  async generateImage(prompt: string): Promise<string> {
+    try {
+      const response = await this.openai.images.generate({
+        prompt: prompt,
+        n: 1,
+        size: "1024x1024",
+      });
+
+      return response.data[0].url || '';
+    } catch (error) {
+      console.error('Error generating image:', error);
+      throw new Error('Failed to generate image');
+    }
   }
 }
-        `.trim();
-        break;
-      case 'claude':
-        content = `
+      `.trim();
+    case 'claude':
+      return `
 import Anthropic from '@anthropic-ai/sdk';
 
 export class AIService {
@@ -284,50 +266,62 @@ export class AIService {
   }
 
   async generateText(prompt: string): Promise<string> {
-    const completion = await this.anthropic.completions.create({
-      model: 'claude-2',
-      prompt: prompt,
-      max_tokens_to_sample: 300,
-    });
+    try {
+      const completion = await this.anthropic.completions.create({
+        model: 'claude-2',
+        prompt: prompt,
+        max_tokens_to_sample: 300,
+      });
 
-    return completion.completion;
+      return completion.completion;
+    } catch (error) {
+      console.error('Error generating text:', error);
+      throw new Error('Failed to generate text');
+    }
   }
 }
-        `.trim();
-        break;
-      case 'v0':
-        content = `
-import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+      `.trim();
+    case 'v0':
+      return `
+import { generateText } from 'ai';
+
+import {
+  createOpenAI,
+  OpenAIProvider,
+} from '@ai-sdk/openai';
 
 export class AIService {
-  private openai: OpenAIApi;
+  private openai: OpenAIProvider;
 
   constructor() {
-    const config = new Configuration({
+    this.openai = createOpenAI({
       apiKey: process.env.OPENAI_API_KEY,
+      compatibility: 'strict',
     });
-    this.openai = new OpenAIApi(config);
   }
 
-  async generateText(prompt: string): Promise<StreamingTextResponse> {
-    const response = await this.openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      stream: true,
-      messages: [{ role: 'user', content: prompt }],
+  async generateCompletion(prompt: string): Promise<string> {
+
+    const { text } = await generateText({
+      model: this.openai('gpt-3.5-turbo'),
+      messages:[
+        { role: 'user', content: prompt }
+      ],
     });
 
-    const stream = OpenAIStream(response);
-    return new StreamingTextResponse(stream);
+    return text;
   }
 }
-        `.trim();
-        break;
-    }
-  } else {
+      `.trim();
+    default:
+      return '';
+  }
+}
+
+function getFunctionBasedAIService(aiChoice) {
   switch(aiChoice) {
     case 'openai':
-      content = `
+      return `
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
@@ -343,9 +337,8 @@ export async function generateText(prompt: string): Promise<string> {
   return chatCompletion.choices[0].message.content || '';
 }
       `.trim();
-      break;
     case 'claude':
-      content = `
+      return `
 import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({
@@ -362,68 +355,34 @@ export async function generateText(prompt: string): Promise<string> {
   return completion.completion;
 }
       `.trim();
-      break;
     case 'v0':
-      content = `
-import { Configuration, OpenAIApi } from 'openai-edge';
-import { OpenAIStream, StreamingTextResponse } from 'ai';
+      return `
+import {
+  createOpenAI,
+  OpenAIProvider,
+} from '@ai-sdk/openai';
+ 
+import { generateText } from 'ai';
 
-const config = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+const openai = createOpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      compatibility: 'strict',
 });
-const openai = new OpenAIApi(config);
 
-export async function generateText(prompt: string): Promise<StreamingTextResponse> {
-  const response = await openai.createChatCompletion({
-    model: 'gpt-3.5-turbo',
-    stream: true,
-    messages: [{ role: 'user', content: prompt }],
+export async function generateCompletion(prompt: string): Promise<string> {
+  const {text} = await generateText({
+      model: openai('gpt-3.5-turbo'),
+      messages:[
+        { role: 'user', content: prompt }
+      ],
   });
 
-  const stream = OpenAIStream(response);
-  return new StreamingTextResponse(stream);
+  return text;
 }
       `.trim();
-      break;
+    default:
+      return '';
   }
-}
-
-  fs.writeFileSync(path.join('src', 'utils', 'ai.ts'), content);
-}
-
-function createAIExample(aiChoice) {
-  const content = `
-import { useState } from 'react';
-import { generateText } from '../utils/ai';
-
-export default function AIExample() {
-  const [prompt, setPrompt] = useState('');
-  const [response, setResponse] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const result = await generateText(prompt);
-    setResponse(result);
-  };
-
-  return (
-    <div>
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Enter your prompt"
-        />
-        <button type="submit">Generate</button>
-      </form>
-      <div>{response}</div>
-    </div>
-  );
-}
-  `.trim();
-
-  fs.writeFileSync(path.join('src', 'components', 'AIExample.tsx'), content);
 }
 
 module.exports = { setup };
